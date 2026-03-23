@@ -1,3 +1,50 @@
+.install-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.93);
+  color: #fff;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  z-index: 200;
+  flex-wrap: wrap;
+}
+
+.install-native-btn {
+  border: 2px solid #fff;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  padding: 0.4rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.install-native-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+.install-dismiss {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.install-banner #install-msg {
+  flex: 1;
+  min-width: 200px;
+}
+
 :root {
   --bg-overlay: rgba(10, 20, 40, 0.35);
   --panel: rgba(255, 255, 255, 0.9);
@@ -21,8 +68,15 @@ body {
 body {
   min-height: 100vh;
   padding: 0;
-  background:
-    url("shared/background/mainimage.png") center / cover no-repeat fixed;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url("shared/background/mainimage.png") center / cover no-repeat;
+  z-index: -1;
 }
 
 .top-bar {
