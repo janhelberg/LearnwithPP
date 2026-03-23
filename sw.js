@@ -1,4 +1,4 @@
-const CACHE_NAME = "learnpp-v1";
+const CACHE_NAME = "learnpp-v2";
 const APP_SHELL = [
   "./",
   "index.html",
