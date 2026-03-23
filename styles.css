@@ -48,8 +48,9 @@ body {
 }
 
 .primary-btn {
-  transform: scale(2);
-  transform-origin: top right;
+  padding: 1.6rem 2rem;
+  font-size: 2.2rem;
+  border-radius: 20px;
 }
 
 .primary-btn:hover,
