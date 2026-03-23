@@ -94,7 +94,7 @@
     <!-- Start screen -->
     <div id="start-screen" class="screen">
       <h1>🐾 Catch!</h1>
-      <p>Move the basket to catch the falling paw prints and bones.<br>Don't let them hit the ground!</p>
+      <p>Drag your finger anywhere to move the basket and catch the falling paw prints and bones.<br>Don't let them hit the ground!</p>
       <button id="start-btn">Start Game</button>
     </div>
 
@@ -140,7 +140,7 @@
       const imgBone = new Image(); imgBone.src = "../../shared/icons/Bone.png";
 
       // ── Game state ────────────────────────────────────────────────────
-      let score, lives, items, basketX, animId, lastTime, spawnTimer, spawnInterval, speed;
+      let score, lives, items, basketX, basketY, animId, lastTime, spawnTimer, spawnInterval, speed;
 
       const BASKET_W   = 110;
       const BASKET_H   = 30;
@@ -151,10 +151,11 @@
         lives         = 3;
         items         = [];
         basketX       = canvas.width / 2 - BASKET_W / 2;
+        basketY       = canvas.height - 80;
         lastTime      = null;
         spawnTimer    = 0;
-        spawnInterval = 1400;   // ms between spawns (decreases over time)
-        speed         = 200;    // px per second (increases over time)
+        spawnInterval = 1800;   // ms between spawns
+        speed         = 120;    // px per second
         updateHUD();
       }
 
@@ -163,16 +164,21 @@
         livesDisplay.textContent = "❤️".repeat(lives);
       }
 
-      // ── Basket position via mouse / touch ─────────────────────────────
-      function setBasketFromX(clientX) {
+      // ── Basket follows finger/mouse anywhere on screen ────────────────
+      function setBasketFrom(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
         basketX = (clientX - rect.left) - BASKET_W / 2;
+        basketY = (clientY - rect.top)  - BASKET_H / 2;
       }
 
-      canvas.addEventListener("mousemove", e => setBasketFromX(e.clientX));
-      canvas.addEventListener("touchmove",  e => {
+      canvas.addEventListener("mousemove", e => setBasketFrom(e.clientX, e.clientY));
+      canvas.addEventListener("touchstart", e => {
         e.preventDefault();
-        setBasketFromX(e.touches[0].clientX);
+        setBasketFrom(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: false });
+      canvas.addEventListener("touchmove", e => {
+        e.preventDefault();
+        setBasketFrom(e.touches[0].clientX, e.touches[0].clientY);
       }, { passive: false });
 
       // ── Falling items ─────────────────────────────────────────────────
@@ -193,9 +199,9 @@
         const dt = (ts - lastTime) / 1000;  // seconds
         lastTime = ts;
 
-        // Gradually increase difficulty
-        spawnInterval = Math.max(500, spawnInterval - dt * 8);
-        speed         = Math.min(600, speed + dt * 3);
+        // Gradually increase difficulty (slower ramp)
+        spawnInterval = Math.max(800, spawnInterval - dt * 4);
+        speed         = Math.min(350, speed + dt * 2);
 
         // Spawn
         spawnTimer += dt * 1000;
@@ -205,7 +211,8 @@
         }
 
         // Update items
-        const basketY = canvas.height - 60;
+        const bx = Math.max(0, Math.min(canvas.width  - BASKET_W, basketX));
+        const by = Math.max(0, Math.min(canvas.height - BASKET_H, basketY));
         const missed = [];
 
         items.forEach(item => {
@@ -213,17 +220,17 @@
 
           // Caught?
           if (
-            item.y + ITEM_SIZE >= basketY &&
-            item.y <= basketY + BASKET_H &&
-            item.x + ITEM_SIZE >= basketX &&
-            item.x <= basketX + BASKET_W
+            item.y + ITEM_SIZE >= by &&
+            item.y <= by + BASKET_H &&
+            item.x + ITEM_SIZE >= bx &&
+            item.x <= bx + BASKET_W
           ) {
             score++;
             updateHUD();
             item.remove = true;
           }
 
-          // Missed?
+          // Missed (fell off bottom)?
           if (item.y > canvas.height) {
             item.remove = true;
             missed.push(item);
@@ -251,19 +258,18 @@
         });
 
         // Basket
-        const bx = Math.max(0, Math.min(canvas.width - BASKET_W, basketX));
         ctx.fillStyle   = "#1d4ed8";
         ctx.strokeStyle = "#93c5fd";
         ctx.lineWidth   = 3;
         ctx.beginPath();
-        ctx.roundRect(bx, basketY, BASKET_W, BASKET_H, 8);
+        ctx.roundRect(bx, by, BASKET_W, BASKET_H, 8);
         ctx.fill();
         ctx.stroke();
 
         // Rim highlight
         ctx.fillStyle = "rgba(147, 197, 253, 0.3)";
         ctx.beginPath();
-        ctx.roundRect(bx + 6, basketY + 4, BASKET_W - 12, 8, 4);
+        ctx.roundRect(bx + 6, by + 4, BASKET_W - 12, 8, 4);
         ctx.fill();
 
         animId = requestAnimationFrame(loop);
