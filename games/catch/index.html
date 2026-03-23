@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Catch! – Learn with PP</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background: url("../../shared/Background/MainImage.png") center / cover no-repeat;
+        background-color: #0a1428;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden;
+        touch-action: none;
+      }
+
+      #hud {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: rgba(10, 20, 40, 0.75);
+        color: #fff;
+        font-size: 1.3rem;
+        z-index: 10;
+      }
+
+      #hud .lives { letter-spacing: 4px; }
+
+      #back-btn {
+        position: fixed;
+        bottom: 0.75rem;
+        left: 0.75rem;
+        background: rgba(10,20,40,0.8);
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.4);
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        cursor: pointer;
+        z-index: 20;
+        text-decoration: none;
+      }
+
+      canvas {
+        display: block;
+        touch-action: none;
+      }
+
+      /* Overlay screens */
+      .screen {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(10, 20, 40, 0.82);
+        color: #fff;
+        text-align: center;
+        z-index: 30;
+        gap: 1.2rem;
+        padding: 1rem;
+      }
+
+      .screen h1 { font-size: 2.5rem; }
+      .screen p  { font-size: 1.2rem; opacity: 0.85; }
+
+      .screen button {
+        background: #1d4ed8;
+        color: #fff;
+        border: 0;
+        border-radius: 14px;
+        padding: 1rem 2.5rem;
+        font-size: 1.4rem;
+        cursor: pointer;
+      }
+
+      .screen button:hover { background: #1e40af; }
+
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+
+    <!-- Start screen -->
+    <div id="start-screen" class="screen">
+      <h1>🐾 Catch!</h1>
+      <p>Move the basket to catch the falling paw prints and bones.<br>Don't let them hit the ground!</p>
+      <button id="start-btn">Start Game</button>
+    </div>
+
+    <!-- Game Over screen -->
+    <div id="gameover-screen" class="screen hidden">
+      <h1>Game Over!</h1>
+      <p id="final-score"></p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <span id="score-display">Score: 0</span>
+      <span id="lives-display" class="lives">❤️❤️❤️</span>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <a href="../../index.html" id="back-btn">← Menu</a>
+
+    <script>
+      const canvas  = document.getElementById("game-canvas");
+      const ctx     = canvas.getContext("2d");
+
+      const startScreen    = document.getElementById("start-screen");
+      const gameoverScreen = document.getElementById("gameover-screen");
+      const startBtn       = document.getElementById("start-btn");
+      const restartBtn     = document.getElementById("restart-btn");
+      const scoreDisplay   = document.getElementById("score-display");
+      const livesDisplay   = document.getElementById("lives-display");
+      const finalScore     = document.getElementById("final-score");
+
+      // ── Resize canvas to fill window ──────────────────────────────────
+      function resize() {
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener("resize", () => { resize(); });
+      resize();
+
+      // ── Load images ───────────────────────────────────────────────────
+      const imgPaw  = new Image(); imgPaw.src  = "../../shared/icons/PawPrint.jpg";
+      const imgBone = new Image(); imgBone.src = "../../shared/icons/Bone.png";
+
+      // ── Game state ────────────────────────────────────────────────────
+      let score, lives, items, basketX, animId, lastTime, spawnTimer, spawnInterval, speed;
+
+      const BASKET_W   = 110;
+      const BASKET_H   = 30;
+      const ITEM_SIZE  = 52;
+
+      function initGame() {
+        score         = 0;
+        lives         = 3;
+        items         = [];
+        basketX       = canvas.width / 2 - BASKET_W / 2;
+        lastTime      = null;
+        spawnTimer    = 0;
+        spawnInterval = 1400;   // ms between spawns (decreases over time)
+        speed         = 200;    // px per second (increases over time)
+        updateHUD();
+      }
+
+      function updateHUD() {
+        scoreDisplay.textContent = "Score: " + score;
+        livesDisplay.textContent = "❤️".repeat(lives);
+      }
+
+      // ── Basket position via mouse / touch ─────────────────────────────
+      function setBasketFromX(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        basketX = (clientX - rect.left) - BASKET_W / 2;
+      }
+
+      canvas.addEventListener("mousemove", e => setBasketFromX(e.clientX));
+      canvas.addEventListener("touchmove",  e => {
+        e.preventDefault();
+        setBasketFromX(e.touches[0].clientX);
+      }, { passive: false });
+
+      // ── Falling items ─────────────────────────────────────────────────
+      function spawnItem() {
+        const margin = ITEM_SIZE;
+        const x = margin + Math.random() * (canvas.width - margin * 2 - ITEM_SIZE);
+        items.push({
+          x,
+          y: -ITEM_SIZE,
+          img: Math.random() < 0.6 ? imgPaw : imgBone,
+          speed: speed + Math.random() * 60
+        });
+      }
+
+      // ── Main loop ─────────────────────────────────────────────────────
+      function loop(ts) {
+        if (!lastTime) lastTime = ts;
+        const dt = (ts - lastTime) / 1000;  // seconds
+        lastTime = ts;
+
+        // Gradually increase difficulty
+        spawnInterval = Math.max(500, spawnInterval - dt * 8);
+        speed         = Math.min(600, speed + dt * 3);
+
+        // Spawn
+        spawnTimer += dt * 1000;
+        if (spawnTimer >= spawnInterval) {
+          spawnTimer = 0;
+          spawnItem();
+        }
+
+        // Update items
+        const basketY = canvas.height - 60;
+        const missed = [];
+
+        items.forEach(item => {
+          item.y += item.speed * dt;
+
+          // Caught?
+          if (
+            item.y + ITEM_SIZE >= basketY &&
+            item.y <= basketY + BASKET_H &&
+            item.x + ITEM_SIZE >= basketX &&
+            item.x <= basketX + BASKET_W
+          ) {
+            score++;
+            updateHUD();
+            item.remove = true;
+          }
+
+          // Missed?
+          if (item.y > canvas.height) {
+            item.remove = true;
+            missed.push(item);
+          }
+        });
+
+        items = items.filter(i => !i.remove);
+
+        if (missed.length) {
+          lives -= missed.length;
+          if (lives < 0) lives = 0;
+          updateHUD();
+          if (lives <= 0) {
+            endGame();
+            return;
+          }
+        }
+
+        // Draw
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Items
+        items.forEach(item => {
+          ctx.drawImage(item.img, item.x, item.y, ITEM_SIZE, ITEM_SIZE);
+        });
+
+        // Basket
+        const bx = Math.max(0, Math.min(canvas.width - BASKET_W, basketX));
+        ctx.fillStyle   = "#1d4ed8";
+        ctx.strokeStyle = "#93c5fd";
+        ctx.lineWidth   = 3;
+        ctx.beginPath();
+        ctx.roundRect(bx, basketY, BASKET_W, BASKET_H, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Rim highlight
+        ctx.fillStyle = "rgba(147, 197, 253, 0.3)";
+        ctx.beginPath();
+        ctx.roundRect(bx + 6, basketY + 4, BASKET_W - 12, 8, 4);
+        ctx.fill();
+
+        animId = requestAnimationFrame(loop);
+      }
+
+      // ── Start / end ───────────────────────────────────────────────────
+      function startGame() {
+        startScreen.classList.add("hidden");
+        gameoverScreen.classList.add("hidden");
+        initGame();
+        animId = requestAnimationFrame(loop);
+      }
+
+      function endGame() {
+        cancelAnimationFrame(animId);
+        finalScore.textContent = "You scored " + score + " point" + (score !== 1 ? "s" : "") + "!";
+        gameoverScreen.classList.remove("hidden");
+      }
+
+      startBtn.addEventListener("click",   startGame);
+      restartBtn.addEventListener("click", startGame);
+    </script>
+  </body>
+</html>
