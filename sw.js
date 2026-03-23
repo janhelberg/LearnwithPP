@@ -5,8 +5,8 @@ const APP_SHELL = [
   "styles.css",
   "app.js",
   "manifest.webmanifest",
-  "shared/background/mainimage.png",
-  "shared/icons/chase.jpg"
+  "shared/Background/MainImage.png",
+  "shared/icons/Chase.jpg"
 ];
 
 self.addEventListener("install", (event) => {

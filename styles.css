@@ -75,7 +75,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: url("shared/background/mainimage.png") center / cover no-repeat;
+  background: url("shared/Background/MainImage.png") center / cover no-repeat;
   z-index: -1;
 }
 
