@@ -1,0 +1,93 @@
+:root {
+  --bg-overlay: rgba(10, 20, 40, 0.35);
+  --panel: rgba(255, 255, 255, 0.9);
+  --text: #0f172a;
+  --button: #1d4ed8;
+  --button-hover: #1e40af;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+}
+
+body {
+  min-height: 100vh;
+  padding: 0;
+  background:
+    url("shared/background/mainimage.png") center / cover no-repeat fixed;
+}
+
+.top-bar {
+  position: fixed;
+  top: 10%;
+  right: 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.primary-btn,
+.game-link {
+  border: 0;
+  border-radius: 12px;
+  background: var(--button);
+  color: #fff;
+  padding: 0.8rem 1rem;
+  font-size: 1.1rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.primary-btn {
+  transform: scale(2);
+  transform-origin: top right;
+}
+
+.primary-btn:hover,
+.game-link:hover,
+.primary-btn:focus-visible,
+.game-link:focus-visible {
+  background: var(--button-hover);
+  outline: none;
+}
+
+.games-panel {
+  margin-top: 0.5rem;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  width: 200px;
+}
+
+.hidden {
+  display: none;
+}
+
+.games-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.games-list li {
+  display: flex;
+}
+
+.game-link {
+  width: 100%;
+  text-align: center;
+}
+
+
